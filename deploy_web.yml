@@ -1,0 +1,53 @@
+---
+- hosts: localhost
+  gather_facts: no
+  collections:
+    - amazon.aws
+    - community.aws
+  tasks:
+    - name: Buat Security Group
+      amazon.aws.ec2_security_group:
+        name: "{{ security_group_name }}"
+        description: Allow HTTP dan SSH
+        region: "{{ aws_region }}"
+        rules:
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+
+    - name: Buat EC2 Instance
+      amazon.aws.ec2_instance:
+        key_name: "{{ key_name }}"
+        security_group: "{{ security_group_name }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ ami_id }}"
+        region: "{{ aws_region }}"
+        state: running
+        wait: yes
+        count: 1
+      register: ec2_instance
+
+    - name: Tunggu hingga instance siap menerima SSH
+      ansible.builtin.wait_for:
+        host: "{{ ec2_instance.instances[0].network_interfaces[0].association.public_ip }}"
+        port: 22
+        delay: 30  # Waktu tunggu sebelum memulai pengecekan koneksi
+        timeout: 300  # Total waktu
+        state: started 
+
+    - name: Tambahkan host baru ke inventory
+      ansible.builtin.add_host:
+        name: "{{ ec2_instance.instances[0].network_interfaces[0].association.public_ip }}"
+        groups: webservers
+        ansible_ssh_private_key_file: /home/rendy/.ssh/ansible-key.pem
+        ansible_user: ubuntu
+
+- hosts: webservers
+  become: yes
+  roles:
+    - web

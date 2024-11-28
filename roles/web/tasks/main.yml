@@ -1,0 +1,27 @@
+---
+- name: Update semua paket
+  apt:
+    name: "*"
+    state: latest
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Copy Nginx konfigurasi template
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/default
+  notify: Restart Nginx
+
+- name: Copy template HTML
+  template:
+    src: index.html.j2
+    dest: /usr/share/nginx/html/index.html
+
+- name: Jalankan Nginx
+  service:
+    name: nginx
+    state: started
+    enabled: yes

@@ -1,0 +1,6 @@
+---
+aws_region: us-west-2
+instance_type: t2.micro
+ami_id: ami-04dd23e62ed049936
+key_name: ansible-key
+security_group_name: web-sg
